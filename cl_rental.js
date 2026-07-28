@@ -1,40 +1,23 @@
 // Mietwagen-Client: Menü-Steuerung und Fahrzeug-Spawn
-// require() funktioniert nicht im FiveM Client → Werte hardcoded (müssen mit config.js sync sein)
 
 const RENT_POS = { x: 225.0, y: 204.0, z: 105.0 };
+const SPAWN_POS = { x: 238.0, y: 196.0, z: 105.0 };
 const MAX_DISTANCE = 3.0;
 const SPAWN_BLOCK_RADIUS = 3.0;
-const INTERACT_KEY = 38;  // E-Taste
-const ESC_KEY = 200;      // ESC-Taste
+const INTERACT_KEY = 38;  // E
+const ESC_KEY = 200;      // ESC
 const VEHICLE_HASH = GetHashKey('baller');
 
-// Status-Flags
-let menuOpen = false;     // Menü ist offen
-let spawning = false;     // Fahrzeug wird gespawnt
-let buySent = false;      // Kauf-Anfrage wurde gesendet
-let modelLoaded = false;  // Fahrzeug-Modell ist geladen
-
-// Mietstation-Zone mit Enter/Leave Events
-const rentalZone = createZone({
-    center: RENT_POS,
-    radius: MAX_DISTANCE,
-    onEnter: () => {
-        if (!modelLoaded) {
-            RequestModel(VEHICLE_HASH);
-            modelLoaded = true;
-        }
-    },
-    onLeave: () => {}
-});
-rentalZone.enable();
+let menuOpen = false;
+let spawning = false;
+let buySent = false;
 
 /**
- * Prüft client-seitig ob am Spawn-Punkt bereits ein Fahrzeug steht.
- * Nutzt GetGamePool('CVehicle') — zuverlässig da Client die Fahrzeuge kennt.
- * @param {number} x - Spawn X-Koordinate
- * @param {number} y - Spawn Y-Koordinate
- * @param {number} z - Spawn Z-Koordinate
- * @returns {boolean} true wenn Spawn blockiert ist
+ * Prüft ob am Spawn-Punkt bereits ein Fahrzeug steht.
+ * @param {number} x - Spawn X
+ * @param {number} y - Spawn Y
+ * @param {number} z - Spawn Z
+ * @returns {boolean} true = blockiert
  */
 function isSpawnBlocked(x, y, z) {
     const vehicles = GetGamePool('CVehicle');
@@ -51,13 +34,14 @@ function isSpawnBlocked(x, y, z) {
     return false;
 }
 
-/**
- * Verarbeitet Tasten-Eingaben für Menü.
- * E = Menü öffnen / Fahrzeug mieten, ESC = Menü schließen
- */
+// Tasten-Input: E = Menü öffnen / Mieten, ESC = Schließen
 setTick(() => {
     if (menuOpen) {
         if (IsControlJustPressed(0, INTERACT_KEY) && !buySent) {
+            if (isSpawnBlocked(SPAWN_POS.x, SPAWN_POS.y, SPAWN_POS.z)) {
+                SendNUIMessage({ type: 'notify', success: false, message: 'Spawn blockiert! Entferne zuerst das vorhandene Fahrzeug.' });
+                return;
+            }
             menuOpen = false;
             buySent = true;
             SendNUIMessage({ type: 'closeMenu' });
@@ -69,33 +53,36 @@ setTick(() => {
         }
         return;
     }
-    if (!rentalZone.inside) return;
     if (IsControlJustPressed(0, INTERACT_KEY)) {
+        const c = GetEntityCoords(PlayerPedId());
+        const dx = c[0] - RENT_POS.x;
+        const dy = c[1] - RENT_POS.y;
+        const dz = c[2] - RENT_POS.z;
+        if (dx * dx + dy * dy + dz * dz > MAX_DISTANCE * MAX_DISTANCE) return;
+
         menuOpen = true;
         SendNUIMessage({ type: 'openMenu' });
     }
 });
 
-// Server benachrichtigt Spieler (Erfolg/Fehler)
+// Server sendet Ergebnis (Erfolg/Fehler)
 onNet('rental:notify', (success, msg) => {
     spawning = false;
     buySent = false;
     SendNUIMessage({ type: 'notify', success, message: msg });
 });
 
-// Server sendet Fahrzeug-Spawn (prüft Spawn-Block vor CreateVehicle)
+// Server sendet Fahrzeug-Spawn
 onNet('rental:spawnVehicle', (x, y, z, h) => {
     if (spawning) return;
 
-    // Client-seitiger Spawn-Block Check
-    if (isSpawnBlocked(x, y, z)) {
-        emitNet('rental:spawnBlocked');
-        return;
-    }
-
     spawning = true;
     RequestModel(VEHICLE_HASH);
-    CreateVehicle(VEHICLE_HASH, x, y, z, h, true, true);
-    SetModelAsNoLongerNeeded(VEHICLE_HASH);
-    modelLoaded = false;
+    const loadTick = setTick(() => {
+        if (HasModelLoaded(VEHICLE_HASH)) {
+            clearTick(loadTick);
+            CreateVehicle(VEHICLE_HASH, x, y, z, h, true, true);
+            SetModelAsNoLongerNeeded(VEHICLE_HASH);
+        }
+    });
 });

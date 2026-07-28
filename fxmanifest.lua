@@ -1,10 +1,9 @@
 fx_version "cerulean"
 game "gta5"
-author "DeinName"
-description "Mietwagen-System (Node.js)"
+author "xEvileyes"
+description "Mietwagen-System"
 
 client_scripts {
-    "cl_zones.js",
     "cl_rental.js",
     "cl_money.js"
 }

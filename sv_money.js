@@ -12,7 +12,6 @@ function removeMoney(id, v) {
     setMoney(id, getMoney(id) - v);
     return true;
 }
-function refundMoney(id, v) { setMoney(id, getMoney(id) + v); }
 
 // Sendet Geldstand an Client
 function sendUpdate(id) {
@@ -31,20 +30,14 @@ onNet('money:get', () => {
     sendUpdate(id);
 });
 
-/** Internes Event: Geld abziehen */
+/** Geld abziehen */
 on('money:remove', (id, v) => {
     const ok = removeMoney(id, v);
     if (ok) sendUpdate(id);
     emit('money:removeResult', id, ok, v);
 });
 
-/** Internes Event: Geld erstatten (z.B. bei gesperrtem Spawn) */
-on('money:refund', (id, v) => {
-    refundMoney(id, v);
-    sendUpdate(id);
-});
-
-/** Spieler hat sich getrennt → Geld aus Speicher entfernen */
+/** Spieler getrennt > Daten löschen */
 on('playerDropped', (reason) => {
     const id = source;
     moneyStore.delete(id);

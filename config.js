@@ -1,3 +1,4 @@
+// Zentrale Konfiguration für Mietwagen
 module.exports = {
     price: 500,
     vehicle: 'baller',
