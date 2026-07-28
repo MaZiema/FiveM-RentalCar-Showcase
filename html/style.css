@@ -1,0 +1,31 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Arial', sans-serif; color: white; overflow: hidden; }
+
+#money {
+    position: absolute; top: 20px; right: 30px;
+    font-size: 22px; font-weight: bold;
+    background: rgba(0,0,0,0.6); padding: 8px 16px;
+    border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);
+}
+
+#notify {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%); font-size: 20px;
+    font-weight: bold; padding: 12px 28px; border-radius: 8px;
+    opacity: 0; transition: opacity 0.3s;
+}
+#notify.show { opacity: 1; }
+#notify.success { background: rgba(46,204,113,0.85); }
+#notify.error { background: rgba(231,76,60,0.85); }
+
+#menu {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    background: rgba(0,0,0,0.85); padding: 30px 40px;
+    border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);
+    text-align: center; display: none; min-width: 300px;
+}
+#menu.show { display: block; }
+.menu-title { font-size: 24px; font-weight: bold; margin-bottom: 20px; }
+.menu-line { font-size: 18px; margin-bottom: 10px; }
+.menu-hint { font-size: 14px; color: #aaa; margin-top: 20px; }
